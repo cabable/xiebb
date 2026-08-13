@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>226</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: "微软雅黑", sans-serif;
+        }
+        .character {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 20px; /* 上下 0、左右居中，再留 20px 下边距 */
+            display: block; /* 让 margin auto 生效 */
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .question {
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center; /* 文字也居中，与 GIF、按钮对齐 */
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center; /* 按钮组水平居中 */
+        }
+        .btn {
+            position: relative; /* 让 z-index 生效，控制覆盖层级 */
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-yes {
+            background: #ff6b9d;
+            color: white;
+            z-index: 2; /* 红色按钮在上层，放大后可覆盖蓝色按钮 */
+            transform-origin: left center; /* 向右生长，覆盖右侧的蓝色按钮 */
+        }
+        .btn-no {
+            background: #4285f4;
+            color: white;
+            z-index: 1; /* 蓝色按钮在下层，会被放大的红色按钮盖住 */
+        }
+        .success-page {
+            display: none;
+            text-align: center;
+        }
+        .success-text {
+            font-size: 32px;
+            color: #ff6b9d;
+            margin-bottom: 20px;
+        }
+        .success-character {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto; /* 水平居中 */
+            display: block; /* 让 margin auto 生效 */
+            object-fit: contain;
+        }
+        .music-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 107, 157, 0.9);
+            color: #fff;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 99;
+            box-shadow: 0 6px 14px -6px rgba(255, 107, 157, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        .music-btn:hover {
+            transform: scale(1.1);
+        }
+        /* 播放中：音符按钮旋转 */
+        .music-btn.playing {
+            animation: musicSpin 3s linear infinite;
+        }
+        @keyframes musicSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 初始页面 -->
+    <div class="initial-page">
+        <img src="68486abbe5053feD.gif" alt="布布" class="character">
+        <div class="question">可以和我一直在一起嘛？</div>
+        <div class="buttons">
+            <button class="btn btn-yes" id="yesBtn">可以</button>
+            <button class="btn btn-no" id="noBtn">不行</button>
+        </div>
+    </div>
+
+    <!-- 成功页面 -->
+    <div class="success-page" id="successPage">
+        <div class="success-text">!!!喜欢你!! ( &gt;ε&lt;)♡°</div>
+        <img src="58798b49cbf441d99d0e251040374f2b.gif" alt="布布一二结婚" class="success-character">
+    </div>
+
+    <!-- 背景音乐 + 音乐控制按钮 -->
+    <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
+    <button class="music-btn" id="musicBtn" type="button" aria-label="播放/暂停音乐" title="播放/暂停音乐">🎵</button>
+
+    <script>
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const initialPage = document.querySelector('.initial-page');
+        const successPage = document.getElementById('successPage');
+        const characterImg = document.querySelector('.character');
+
+        // ===================== 背景音乐 =====================
+        const bgMusic = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicBtn');
+        let musicPlaying = false;
+        let musicStarted = false; // 是否已通过用户手势成功启动过一次
+
+        // 尝试播放：只在从未成功启动过时触发，避免覆盖用户手动暂停
+        function tryPlayMusic() {
+            if (musicStarted || musicPlaying) return;
+            bgMusic.play().then(() => {
+                musicPlaying = true;
+                musicStarted = true;
+                musicBtn.textContent = '⏸';
+                musicBtn.classList.add('playing');
+            }).catch(() => { /* 仍被拦截则等下一次手势 */ });
+        }
+
+        function toggleMusic() {
+            if (musicPlaying) {
+                bgMusic.pause();
+                musicPlaying = false;
+                musicBtn.textContent = '🎵';
+                musicBtn.classList.remove('playing');
+            } else {
+                tryPlayMusic(); // 点击按钮本身就是用户手势
+            }
+        }
+        musicBtn.addEventListener('click', toggleMusic);
+
+        // 浏览器自动播放策略：没有用户手势不允许出声。
+        // 所以页面任意位置第一次点击/触摸时，自动开始播放音乐。
+        document.addEventListener('pointerdown', tryPlayMusic, { once: true });
+        document.addEventListener('click', tryPlayMusic, { once: true });
+
+        // 定义"不行"按钮的变化内容
+        const noTexts = ['考虑考虑', '再想想?', '不许选这个!', '我会很伤心...', '不行...'];
+        let noIndex = 0;
+        let yesSize = 1; // 控制"可以"按钮的大小
+        let noSize = 1; // 控制"不行"按钮的大小
+        let noShift = 0; // 控制"不行"按钮向右偏移量（每次 +20px）
+
+        // 点击"不行"按钮的逻辑
+        noBtn.addEventListener('click', () => {
+            // 切换"不行"按钮的文字
+            noBtn.textContent = noTexts[noIndex % noTexts.length];
+            noIndex++;
+
+            // 连续点击两次后，把主 GIF 切换为哭泣委屈表情
+            if (noIndex === 2) {
+                characterImg.src = '685cb90e8a942BfP.gif';
+            }
+
+            // 让"可以"按钮变大（向右生长，会逐渐盖住蓝色按钮）
+            yesSize = Math.min(yesSize + 0.25, 3);
+            yesBtn.style.transform = `scale(${yesSize})`;
+
+            // 让"不行"按钮缩小（缩到最小 0.3，最终会被红色按钮覆盖）
+            noSize = Math.max(noSize - 0.15, 0.3);
+            // 缩小后每次再向右移动 10px
+            noShift += 10;
+            noBtn.style.transform = `translateX(${noShift}px) scale(${noSize})`;
+        });
+
+        // 点击"可以"按钮的逻辑
+        yesBtn.addEventListener('click', () => {
+            // 隐藏初始页面，显示成功页面
+            initialPage.style.display = 'none';
+            successPage.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
